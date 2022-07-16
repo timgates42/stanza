@@ -6,13 +6,14 @@ import sys
 from stanza.models.common.vocab import VOCAB_PREFIX
 from stanza.models.common.constant import treebank_to_short_name
 from stanza.models.pos.vocab import XPOSVocab, WordVocab
+from stanza.models.pos.xpos_vocab_utils import XPOSDescription, XPOSType
 from stanza.models.common.doc import *
 from stanza.utils.conll import CoNLL
 from stanza.utils import default_paths
 
 SHORTNAME_RE = re.compile("[a-z-]+_[a-z0-9]+")
 DATA_DIR = default_paths.get_default_paths()['POS_DATA_DIR']
-DEFAULT_KEY = 'WordVocab(data, shorthand, idx=2, ignore=["_"])'
+DEFAULT_KEY = XPOSDescription(XPOSType.WORD, None)
 
 def filter_data(data, idx):
     data_filtered = []
@@ -48,7 +49,7 @@ def get_factory(sh, fn):
             vocab = XPOSVocab(data, sh, idx=2, sep=sep)
             length = sum(len(x) - len(VOCAB_PREFIX) for x in vocab._id2unit.values())
             if length < best_size:
-                key = 'XPOSVocab(data, shorthand, idx=2, sep="{}")'.format(sep)
+                key = XPOSDescription(XPOSType.XPOS, sep)
                 best_size = length
     return key
 
@@ -111,8 +112,12 @@ from stanza.models.pos.vocab import WordVocab, XPOSVocab
 def xpos_vocab_factory(data, shorthand):''', file=f)
 
         for key in mapping:
+            if key.xpos_type is XPOSType.WORD:
+                code = 'WordVocab(data, shorthand, idx=2, ignore=["_"])'
+            else:
+                code = 'XPOSVocab(data, shorthand, idx=2, sep="%s")' % key.sep
             print("    {} shorthand in [{}]:".format('if' if first else 'elif', ', '.join(['"{}"'.format(x) for x in sorted(mapping[key])])), file=f)
-            print("        return {}".format(key), file=f)
+            print("        return {}".format(code), file=f)
 
             first = False
         print('''    else:
